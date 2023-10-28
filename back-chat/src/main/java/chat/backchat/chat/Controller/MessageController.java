@@ -6,6 +6,8 @@ import chat.backchat.chat.pubsub.RedisPublisher;
 import chat.backchat.chat.repository.ChatRoomRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.util.StopWatch;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +25,9 @@ public class MessageController {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatService chatService;
 
+    private final ChannelTopic channelTopic; // 단일 토픽
+    private final RedisTemplate<String, Object> redisTemplate;
+
     /**
      * websocket "/pub/chat/message"로 들어오는 메시징을 처리한다.
      */
@@ -33,13 +38,15 @@ public class MessageController {
             message.setMessage(message.getSender() + "님이 입장하셨습니다.");
 
             log.info("입장 메세지 전송");
-            redisPublisher.publish(chatRoomRepository.getTopic(message.getRoomId()), message);
+            redisTemplate.convertAndSend(channelTopic.getTopic(),message); // 단일 토픽
+//            redisPublisher.publish(chatRoomRepository.getTopic(message.getRoomId()), message);
         } else {
             log.info("메세지 전송");
 
             StopWatch sw = new StopWatch("메세지 전송 속도 측정");
             sw.start();
-            redisPublisher.publish(chatRoomRepository.getTopic(message.getRoomId()), message);
+            redisTemplate.convertAndSend(channelTopic.getTopic(),message); // 단일 토픽
+//            redisPublisher.publish(chatRoomRepository.getTopic(message.getRoomId()), message);
             sw.stop();
             System.out.println(sw.prettyPrint());
 
