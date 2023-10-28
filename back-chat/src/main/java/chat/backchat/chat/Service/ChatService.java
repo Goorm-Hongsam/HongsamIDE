@@ -29,7 +29,8 @@ public class ChatService {
 
         redisTemplateMessage.opsForList().leftPush(message.getRoomId(), message);
 
-        redisTemplateMessage.expire(message.getRoomId(), 1, TimeUnit.MINUTES);
+        // 알고보니 expire가 저장안되고 있었다.
+        Boolean expire = redisTemplateMessage.expire(message.getRoomId(), 3, TimeUnit.MINUTES);
 
     }
 

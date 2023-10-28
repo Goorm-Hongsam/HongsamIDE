@@ -7,6 +7,7 @@ import chat.backchat.chat.repository.ChatRoomRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.util.StopWatch;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
@@ -35,9 +36,14 @@ public class MessageController {
             redisPublisher.publish(chatRoomRepository.getTopic(message.getRoomId()), message);
         } else {
             log.info("메세지 전송");
-            redisPublisher.publish(chatRoomRepository.getTopic(message.getRoomId()), message);
 
-            chatService.saveMessage(message);
+            StopWatch sw = new StopWatch("메세지 전송 속도 측정");
+            sw.start();
+            redisPublisher.publish(chatRoomRepository.getTopic(message.getRoomId()), message);
+            sw.stop();
+            System.out.println(sw.prettyPrint());
+
+//            chatService.saveMessage(message); // 성능 측정위해 잠깐 메세지 저장 안함
         }
 
     }
