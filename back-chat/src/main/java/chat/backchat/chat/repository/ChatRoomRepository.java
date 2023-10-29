@@ -28,19 +28,20 @@ public class ChatRoomRepository {
     }
 
     public void enterChatRoom(String roomId,String uuid) {
-        ChannelTopic topic = topics.get(roomId);
+        log.info("uuid={}",uuid);
+        ChannelTopic topic = topics.get(uuid);
         if (topic == null) {
             log.info("chat 서버의 map에 없어서 topic을 새로 생성");
             topic = new ChannelTopic(uuid);
             redisMessageListener.addMessageListener(redisSubscriber, topic);
-            topics.put(roomId, topic);
+            topics.put(uuid, topic);
         } else {
             log.info("topic이 chat 서버의 map에 있음.");
         }
     }
 
-    public ChannelTopic getTopic(String roomId) {
-        return topics.get(roomId);
+    public ChannelTopic getTopic(String uuid) {
+        return topics.get(uuid);
     }
 
 }

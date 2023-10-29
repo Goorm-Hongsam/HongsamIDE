@@ -33,13 +33,13 @@ public class MessageController {
             message.setMessage(message.getSender() + "님이 입장하셨습니다.");
 
             log.info("입장 메세지 전송");
-            redisPublisher.publish(chatRoomRepository.getTopic(message.getRoomId()), message);
+            redisPublisher.publish(chatRoomRepository.getTopic(message.getUuid()), message);
         } else {
             log.info("메세지 전송");
 
             StopWatch sw = new StopWatch("메세지 전송 속도 측정");
             sw.start();
-            redisPublisher.publish(chatRoomRepository.getTopic(message.getRoomId()), message);
+            redisPublisher.publish(chatRoomRepository.getTopic(message.getUuid()), message);
             sw.stop();
             System.out.println(sw.prettyPrint());
 
