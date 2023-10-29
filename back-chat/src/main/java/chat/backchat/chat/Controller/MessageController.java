@@ -43,12 +43,12 @@ public class MessageController {
             sw.stop();
             System.out.println(sw.prettyPrint());
 
-//            chatService.saveMessage(message); // 성능 측정위해 잠깐 메세지 저장 안함
+            chatService.saveMessage(message);
         }
 
     }
 
-    // 메세지 불러오기
+//     메세지 불러오기
     @GetMapping("/chat/message/{roomId}")
     public List<ChatMessage> loadMessage(@PathVariable String roomId) {
         return chatService.loadMessage(roomId);
