@@ -31,7 +31,7 @@ public class ChatRoomRepository {
         ChannelTopic topic = topics.get(roomId);
         if (topic == null) {
             log.info("chat 서버의 map에 없어서 topic을 새로 생성");
-            topic = new ChannelTopic(uuid);
+            topic = new ChannelTopic(roomId);
             redisMessageListener.addMessageListener(redisSubscriber, topic);
             topics.put(roomId, topic);
         } else {
