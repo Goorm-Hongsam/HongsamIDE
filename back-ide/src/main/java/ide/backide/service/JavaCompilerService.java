@@ -46,6 +46,20 @@ import java.util.Locale;
  * 5. 회원가입 시 컨테이너 생성 요청 파이프라인 구축
  *
  */
+
+
+/**
+ * 리팩토링 구현 순서
+ * 0. 메소드 단위로 보기 좋게 쪼개기
+ * 1. Exception 변환
+ * 2. 논리적으로 허점있는 부분 보완하기
+ *
+ * 3. 예제입출력에 대한 부분 추가하기
+ * -> 4번부터 만들면 3번은 + 되는 부분
+ *
+ * 4. 히든케이스 60개 결과 반환할 때 원래는 "정답입니다"/"오답입니다" -> 각 케이스 별로 맞았는지 틀렸는지를 리스트 형태로 반환
+ * -> 하나의 케이스에 대해서 출력이 몇 줄 나오는지
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -56,6 +70,7 @@ public class JavaCompilerService implements CompilerService{
     @Value("${cloud.aws.s3.bucket}")
     private String bucket;
 
+
     @Override
     public String compiler(String questionId) throws Exception {
 
@@ -65,12 +80,12 @@ public class JavaCompilerService implements CompilerService{
 
         StringBuilder sb = new StringBuilder();
 
-
+        // 자바 컴파일러 설정
         Iterable<String> options = Arrays.asList("--release", "11"); // 컴파일러 자바 버전 설정
         StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
         fileManager.setLocation(StandardLocation.CLASS_OUTPUT, Arrays.asList(outputDirectory));
         Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromFiles(Arrays.asList(javaFile));
-        DiagnosticCollector<JavaFileObject> diag = new DiagnosticCollector<>();
+        DiagnosticCollector<JavaFileObject> diag = new DiagnosticCollector<>(); // 컴파일 에러 정보를 담을 장소
 
         JavaCompiler.CompilationTask task = compiler.getTask(null, fileManager, diag, options, null, compilationUnits);
 
@@ -78,8 +93,6 @@ public class JavaCompilerService implements CompilerService{
         /**
          * 여기까지가 Java Complier API의 역할
          */
-
-
         if (success) {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             PrintStream printStream = new PrintStream(outputStream);
@@ -88,16 +101,15 @@ public class JavaCompilerService implements CompilerService{
 
             // 컴파일된 .class 파일이 있는 디렉토리를 클래스 로더에 추가
             URLClassLoader classLoader = URLClassLoader.newInstance(new URL[]{new File("/tmp").toURI().toURL()});
-
             // 클래스 로드
             Class<?> loadedClass = Class.forName(questionId, true, classLoader);
-
             // 메소드 호출
             Method mainMethod = loadedClass.getMethod("main", String[].class);
             InputStream originalIn = System.in;
             getS3File(questionId, "input");
             getS3File(questionId, "answer");
             System.setIn(new FileInputStream("/tmp/input.txt"));
+            // 여기까지가 스프링 안에서 실행된 .class 파일에 새로운 입력으로 60개의 히든케이스를 설정하는 작업이 완료.
             try {
                 mainMethod.invoke(null, (Object) new String[]{});
             } catch (Exception e) {
@@ -111,18 +123,27 @@ public class JavaCompilerService implements CompilerService{
             resultFile.write(outputStream.toByteArray());
             resultFile.close();
             outputStream.reset();
+            // 사용자의 코드에 대한 실행 결과값이 output.txt로 저장 완료
 
             File classFile = new File("/tmp", questionId + ".class");
             if (classFile.exists()) {
                 classFile.delete();
             }
+            /**
+             * 3            3
+             * 5            5
+             * 1            2
+             * 6            6
 
+             * List<Boolean> list = new ArrayList<>();
+             * List<String> list = new ArrayList<>();
+             *
+             */
             if(compareFiles("/tmp/output.txt", "/tmp/answer.txt")) {
                 return "정답입니다.";
             } else {
                 return "틀렸습니다.";
             }
-
         } else {   //컴파일 에러 발생
             DiagnosticCollector<JavaFileObject> diagnostics = diag;
             for (Diagnostic<? extends JavaFileObject> diagnostic : diagnostics.getDiagnostics()) {
@@ -139,7 +160,6 @@ public class JavaCompilerService implements CompilerService{
         File file = new File("/tmp/" + type + ".txt");
         amazonS3.getObject(getObjectRequest, file);
     }
-
 
     private static boolean compareFiles(String outputPath, String answerPath) {
         try {
